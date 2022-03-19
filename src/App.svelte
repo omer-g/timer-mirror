@@ -1,12 +1,14 @@
 <script lang="ts">
     import { onDestroy, onMount } from "svelte";
     import { addNoSleepListener, removeNoSleepListener } from "./stayAwake"; 
+    import fitty from "fitty";
 
-    const timerFormId = "timerForm";
+
+    let timerForm: HTMLElement;
 
     // KEEP DEVICE AWAKE WHILE TIMER IS IN FOCUS
     onMount(() => {
-        addNoSleepListener(document.getElementById(timerFormId));
+        addNoSleepListener(timerForm);
     });
     onDestroy(removeNoSleepListener);
 
@@ -39,7 +41,7 @@
         return currentTime - 1;
     }
 
-    function startTimer(minutes: number) {
+    function start(minutes: number) {
         clearInterval(intervalId);
         if (Number.isInteger(minutes) && minutes > 0) {
             time = inSeconds(minutes);
@@ -51,11 +53,7 @@
 
 <main>
     <div class="mirror timer">{minutes}:{seconds}</div>
-    <form
-    id={timerFormId}
-    on:submit|preventDefault={() => startTimer(duration)}
-    class="start"
-    >
+    <form bind:this={timerForm} on:submit|preventDefault={() => start(duration)} class="start">
         {#if timerRunning === false}
             <input type="number" placeholder="MINUTES" bind:value={duration} />
             <input type="submit" class="buttons" value="START" />
@@ -69,6 +67,10 @@
         padding: 1em;
         max-width: 240px;
         margin: 0 auto;
+        /* font-family: "Andalé Mono"; */
+        /* font-family: "Lucida Console"; */
+        /* font-family: "Monaco"; */
+        font-family: "Courier";
     }
 
     @media (min-width: 640px) {
