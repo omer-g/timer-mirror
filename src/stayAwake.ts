@@ -7,7 +7,9 @@ let eventListenerExists = false;
 
 export function enableNoSleep() {
     document.removeEventListener("submit", enableNoSleep, false);
-    noSleep.enable();
+    if (noSleep.isEnabled === false) {
+        noSleep.enable();
+    }
 }
 
 export async function addNoSleepListener(element: HTMLElement) {

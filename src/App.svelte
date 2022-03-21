@@ -1,18 +1,22 @@
 <script lang="ts">
     import { onDestroy, onMount } from "svelte";
-    import { addNoSleepListener, removeNoSleepListener } from "./stayAwake"; 
+    import { addNoSleepListener, removeNoSleepListener } from "./stayAwake";
     import fitty from "fitty";
 
+    let timeDiv: HTMLDivElement;
+    let timerForm: HTMLFormElement;
+    let beforeStart = true;
+    let showStartButton = true;
 
-    let timerForm: HTMLElement;
-
-    // KEEP DEVICE AWAKE WHILE TIMER IS IN FOCUS
     onMount(() => {
+        // Keep device awake when timer in focus
         addNoSleepListener(timerForm);
-    });
-    onDestroy(removeNoSleepListener);
 
-    let timerRunning = false;
+        // Fit text in div to size of parent container
+        fitty(timeDiv);
+    });
+
+    onDestroy(removeNoSleepListener);
 
     const pad = (num: number) => {
         return num.toString().length === 1 ? "0" + num : num.toString();
@@ -21,12 +25,17 @@
     const inSeconds = (minutes: number) => minutes * 60;
     const returnMinutes = (time: number) => Math.floor(time / 60);
     const returnSeconds = (time: number) => Math.floor(time % 60);
-    
+
     let intervalId = 0;
 
-    let initialMinutes = 1;
-    let initialTime = inSeconds(initialMinutes);
-    let duration: number; // in minutes - bound to input
+    let sessionMinutes = 50;
+    let breakMinutes = 10;
+    let sessionTimer = true;
+
+    let timerMinutes = sessionMinutes;
+
+    // let initialMinutes = sessionMinutes;
+    let initialTime = inSeconds(timerMinutes);
 
     $: time = initialTime;
     $: minutes = pad(returnMinutes(time));
@@ -34,7 +43,9 @@
 
     $: if (time <= 0) {
         clearInterval(intervalId);
-        timerRunning = false;
+        timerMinutes = sessionTimer ? sessionMinutes : breakMinutes;
+        time = inSeconds(timerMinutes);
+        showStartButton = true;
     }
 
     function updateTime(currentTime: number) {
@@ -47,15 +58,34 @@
             time = inSeconds(minutes);
         }
         intervalId = window.setInterval(() => (time = updateTime(time)), 1000);
-        timerRunning = true;
+        beforeStart = false;
+        showStartButton = false;
+        sessionTimer = !sessionTimer;
     }
 </script>
 
-<main>
-    <div class="mirror timer">{minutes}:{seconds}</div>
-    <form bind:this={timerForm} on:submit|preventDefault={() => start(duration)} class="start">
-        {#if timerRunning === false}
-            <input type="number" placeholder="MINUTES" bind:value={duration} />
+<main class="centered">
+    <div class="mirror timer" bind:this={timeDiv}>
+        {minutes}:{seconds}
+    </div>
+    <form
+        bind:this={timerForm}
+        on:submit|preventDefault={() => start(timerMinutes)}
+        class="start"
+    >
+        {#if beforeStart === true}
+            <input
+                type="number"
+                placeholder="Session minutes"
+                bind:value={sessionMinutes}
+            />
+            <input
+                type="number"
+                placeholder="Break minutes"
+                bind:value={breakMinutes}
+            /><br />
+        {/if}
+        {#if showStartButton}
             <input type="submit" class="buttons" value="START" />
         {/if}
     </form>
@@ -64,25 +94,23 @@
 <style>
     main {
         text-align: center;
-        padding: 1em;
-        max-width: 240px;
         margin: 0 auto;
         /* font-family: "Andalé Mono"; */
         /* font-family: "Lucida Console"; */
         /* font-family: "Monaco"; */
         font-family: "Courier";
+        width: 75%;
     }
 
-    @media (min-width: 640px) {
+    /* @media (min-width: 640px) {
         main {
             max-width: none;
         }
-    }
+    } */
 
     .timer {
         color: white;
         font-weight: 100;
-        font-size: 150px;
     }
 
     .start {
