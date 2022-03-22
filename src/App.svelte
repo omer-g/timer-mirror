@@ -28,11 +28,14 @@
 
   let intervalId = 0;
 
+  let defaultSession = 50;
+  let defaultBreak = 10;
+
   let sessionMinutes = 50;
   let breakMinutes = 10;
   let sessionTimer = true;
 
-  let timerMinutes = sessionMinutes;
+  let timerMinutes = defaultSession;
 
   // let initialMinutes = sessionMinutes;
   let initialTime = inSeconds(timerMinutes);
@@ -44,6 +47,9 @@
   $: if (time <= 0) {
     clearInterval(intervalId);
     timerMinutes = sessionTimer ? sessionMinutes : breakMinutes;
+    if (Number.isInteger(timerMinutes) === false) {
+      timerMinutes = sessionTimer ? defaultSession : defaultBreak;
+    }
     time = inSeconds(timerMinutes);
     showStartButton = true;
   }
@@ -53,6 +59,9 @@
   }
 
   function start(minutes: number) {
+    console.log("minutes", minutes);
+    console.log("sessionMinutes", sessionMinutes);
+    console.log("timerMinutes", timerMinutes);    
     clearInterval(intervalId);
     if (Number.isInteger(minutes) && minutes > 0) {
       time = inSeconds(minutes);
@@ -74,7 +83,7 @@
   </div>
   <form
     bind:this={timerForm}
-    on:submit|preventDefault={() => start(timerMinutes)}
+    on:submit|preventDefault={() => start(sessionMinutes)}
     class="start"
   >
     {#if beforeStart === true}
