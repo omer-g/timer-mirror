@@ -5,10 +5,15 @@
 
   let timeDiv: HTMLDivElement;
   let timerForm: HTMLFormElement;
+
+  // Before start ask for interval input
   let beforeStart = true;
+
+  // Show buttons when timer not running
   let showStartButton = true;
 
   onMount(() => {
+  
     // Keep device awake when timer in focus
     addNoSleepListener(timerForm);
 
@@ -25,6 +30,7 @@
   const inSeconds = (minutes: number) => minutes * 60;
   const returnMinutes = (time: number) => Math.floor(time / 60);
   const returnSeconds = (time: number) => Math.floor(time % 60);
+  const isPositiveInteger = (num: unknown) => Number.isInteger(num) && num > 0;
 
   let intervalId = 0;
 
@@ -37,37 +43,40 @@
 
   let timerMinutes = defaultSession;
 
-  // let initialMinutes = sessionMinutes;
-  let initialTime = inSeconds(timerMinutes);
+  let startTime: Date;
+  let timeDelta = 0;
 
-  $: time = initialTime;
-  $: minutes = pad(returnMinutes(time));
-  $: seconds = pad(returnSeconds(time));
+  let time = inSeconds(timerMinutes);
+  $: minutesOutput = pad(returnMinutes(time));
+  $: secondsOutput = pad(returnSeconds(time));
+  
+  function setTimerMinutes() {
+    const defaultMinutes = sessionTimer ? defaultSession : defaultBreak;
+    const minutes = sessionTimer ? sessionMinutes : breakMinutes;
+    return isPositiveInteger(minutes) ? minutes : defaultMinutes;
+  }
 
   $: if (time <= 0) {
     clearInterval(intervalId);
-    timerMinutes = sessionTimer ? sessionMinutes : breakMinutes;
-    if (Number.isInteger(timerMinutes) === false) {
-      timerMinutes = sessionTimer ? defaultSession : defaultBreak;
-    }
+    timerMinutes = setTimerMinutes();
     time = inSeconds(timerMinutes);
     showStartButton = true;
   }
 
-  function updateTime(currentTime: number) {
-    return currentTime - 1;
+  function updateTime() {
+    const timeNow = new Date();
+    timeDelta = Math.floor((timeNow.valueOf() / 1000) - (startTime.valueOf() / 1000));
+    return inSeconds(timerMinutes) - timeDelta;
   }
 
-  function start(minutes: number) {
-    console.log("minutes", minutes);
-    console.log("sessionMinutes", sessionMinutes);
-    console.log("timerMinutes", timerMinutes);    
-    clearInterval(intervalId);
-    if (Number.isInteger(minutes) && minutes > 0) {
-      time = inSeconds(minutes);
-    }
-    intervalId = window.setInterval(() => (time = updateTime(time)), 1000);
+  function start() {
     beforeStart = false;
+    startTime = new Date();
+
+    timerMinutes = setTimerMinutes();
+    time = inSeconds(timerMinutes);
+    intervalId = window.setInterval(() => (time = updateTime()), 1000);
+    
     showStartButton = false;
     sessionTimer = !sessionTimer;
   }
@@ -79,11 +88,11 @@
 
 <main class="centered">
   <div class="mirror timer" bind:this={timeDiv}>
-    {minutes}:{seconds}
+    {minutesOutput}:{secondsOutput}
   </div>
   <form
     bind:this={timerForm}
-    on:submit|preventDefault={() => start(sessionMinutes)}
+    on:submit|preventDefault={() => start()}
     class="start"
   >
     {#if beforeStart === true}
@@ -114,18 +123,9 @@
   main {
     text-align: center;
     margin: 0 auto;
-    /* font-family: "Andalé Mono"; */
-    /* font-family: "Lucida Console"; */
-    /* font-family: "Monaco"; */
     font-family: "Courier";
     width: 75%;
   }
-
-  /* @media (min-width: 640px) {
-        main {
-            max-width: none;
-        }
-    } */
 
   .timer {
     color: white;
