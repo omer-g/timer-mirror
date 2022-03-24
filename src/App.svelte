@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
-  import { addNoSleepListener, removeNoSleepListener } from "./stayAwake";
+  import { addNoSleepListener, removeNoSleepListener } from "./util/stayAwake";
+  import { mirroredStore } from "./util/store";
   import fitty from "fitty";
 
   let timeDiv: HTMLDivElement;
@@ -13,12 +14,15 @@
   let showStartButton = true;
 
   onMount(() => {
-  
     // Keep device awake when timer in focus
     addNoSleepListener(timerForm);
 
     // Fit text in div to size of parent container
     fitty(timeDiv);
+
+    if ($mirroredStore === false) {
+      timeDiv.classList.remove("mirror");
+    }
   });
 
   onDestroy(removeNoSleepListener);
@@ -49,7 +53,7 @@
   let time = inSeconds(timerMinutes);
   $: minutesOutput = pad(returnMinutes(time));
   $: secondsOutput = pad(returnSeconds(time));
-  
+
   function setTimerMinutes() {
     const defaultMinutes = sessionTimer ? defaultSession : defaultBreak;
     const minutes = sessionTimer ? sessionMinutes : breakMinutes;
@@ -65,7 +69,9 @@
 
   function updateTime() {
     const timeNow = new Date();
-    timeDelta = Math.floor((timeNow.valueOf() / 1000) - (startTime.valueOf() / 1000));
+    timeDelta = Math.floor(
+      timeNow.valueOf() / 1000 - startTime.valueOf() / 1000
+    );
     return inSeconds(timerMinutes) - timeDelta;
   }
 
@@ -76,13 +82,14 @@
     timerMinutes = setTimerMinutes();
     time = inSeconds(timerMinutes);
     intervalId = window.setInterval(() => (time = updateTime()), 1000);
-    
+
     showStartButton = false;
     sessionTimer = !sessionTimer;
   }
 
-  function toggle(element: HTMLElement, cssClass: string) {
-    element.classList.toggle(cssClass);
+  function toggleMirror(element: HTMLElement) {
+    $mirroredStore = !$mirroredStore;
+    element.classList.toggle("mirror");
   }
 </script>
 
@@ -112,7 +119,7 @@
         type="button"
         class="buttons"
         value="MIRROR"
-        on:click={() => toggle(timeDiv, "mirror")}
+        on:click={() => toggleMirror(timeDiv)}
       />
       <input type="submit" class="buttons" value="START" />
     {/if}
