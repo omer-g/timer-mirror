@@ -1,8 +1,12 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import { addNoSleepListener, removeNoSleepListener } from "./util/stayAwake";
-  import { mirroredStore } from "./util/store";
   import fitty from "fitty";
+  import Cookies from "js-cookie";
+  
+  // Can optionally pass "?mirrored=true/false" in URL
+  const mirroredParamName = "mirrored";
+  const mirroredCookieName = "mirrorCookie";
 
   let timeDiv: HTMLDivElement;
   let timerForm: HTMLFormElement;
@@ -13,6 +17,21 @@
   // Show buttons when timer not running
   let showStartButton = true;
 
+  function processParameters() {
+    const params = new URLSearchParams(document.location.search);
+    const mirrored = params.get(mirroredParamName);
+    if (mirrored === null) {
+      return;
+    }
+    if (mirrored === "true") {
+      Cookies.set(mirroredCookieName, "true", { expires: 365 });
+    }
+    if (mirrored === "false") {
+      Cookies.set(mirroredCookieName, "false", { expires: 365 });
+    }
+  }
+
+
   onMount(() => {
     // Keep device awake when timer in focus
     addNoSleepListener(timerForm);
@@ -20,7 +39,12 @@
     // Fit text in div to size of parent container
     fitty(timeDiv);
 
-    if ($mirroredStore === false) {
+    // Check if user passed mirrored choice through parameter
+    processParameters();    
+    if (Cookies.get(mirroredCookieName) === undefined) {
+      Cookies.set(mirroredCookieName, "true", { expires: 365 })
+    }
+    if (Cookies.get(mirroredCookieName) === "false") {
       timeDiv.classList.remove("mirror");
     }
   });
@@ -88,7 +112,12 @@
   }
 
   function toggleMirror(element: HTMLElement) {
-    $mirroredStore = !$mirroredStore;
+    let cookieValue = "false";
+    if (Cookies.get(mirroredCookieName) === "false") {
+      cookieValue = "true";
+    }
+    Cookies.set(mirroredCookieName, cookieValue, { expires: 365 });
+
     element.classList.toggle("mirror");
   }
 </script>
